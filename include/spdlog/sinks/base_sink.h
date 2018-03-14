@@ -38,9 +38,16 @@ public:
         _flush();
     }
 
+    void close() SPDLOG_FINAL override
+    {
+        std::lock_guard<Mutex> lock(_mutex);
+        _close();
+    }
+    
 protected:
     virtual void _sink_it(const details::log_msg &msg) = 0;
     virtual void _flush() = 0;
+    virtual void _close() {}; // Optional implementation
     Mutex _mutex;
 };
 }} // namespace spdlog::sinks
