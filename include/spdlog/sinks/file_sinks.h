@@ -37,6 +37,15 @@ public:
             _file_open=false;
         }
     }
+    
+    void close()
+    {
+        if(_file_open)
+        {
+            _file_helper.close();
+            _file_open=false;
+        }
+    }
 
     void set_force_flush(bool force_flush)
     {
@@ -93,6 +102,16 @@ public:
         }
         else
         {
+            _file_open=false;
+        }
+    }
+    
+    void close()
+    {
+        if(_file_open)
+        {
+            _file_helper.close();
+            _current_size=0;
             _file_open=false;
         }
     }
