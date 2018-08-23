@@ -15,11 +15,13 @@
 #include <mutex>
 #include <string>
 
-namespace spdlog { namespace sinks {
+namespace spdlog {
+namespace sinks {
 /*
  * MSVC sink (logging using OutputDebugStringA)
  */
-template <class Mutex> class msvc_sink : public base_sink<Mutex>
+template<class Mutex>
+class msvc_sink : public base_sink<Mutex>
 {
 public:
     explicit msvc_sink() {}
@@ -36,6 +38,7 @@ protected:
 using msvc_sink_mt = msvc_sink<std::mutex>;
 using msvc_sink_st = msvc_sink<details::null_mutex>;
 
-}} // namespace spdlog::sinks
+} // namespace sinks
+} // namespace spdlog
 
 #endif

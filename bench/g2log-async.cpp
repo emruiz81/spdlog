@@ -13,7 +13,8 @@
 #include "g2logworker.h"
 
 using namespace std;
-template <typename T> std::string format(const T &value);
+template<typename T>
+std::string format(const T &value);
 
 int main(int argc, char *argv[])
 {
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
     for (auto &t : threads)
     {
         t.join();
-    };
+    }
 
     duration<float> delta = clock::now() - start;
     float deltaf = delta.count();

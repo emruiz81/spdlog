@@ -47,7 +47,9 @@ int main(int, char *[])
         // Create a file rotating logger with 5mb size max and 3 rotated files
         auto rotating_logger = spd::rotating_logger_mt("some_logger_name", "logs/rotating.txt", 1048576 * 5, 3);
         for (int i = 0; i < 10; ++i)
+        {
             rotating_logger->info("{} * {} equals {:>10}", i, i, i * i);
+        }
 
         // Create a daily logger - a new file is created every day on 2:30am
         auto daily_logger = spd::daily_logger_mt("daily_logger", "logs/daily.txt", 2, 30);
@@ -56,8 +58,9 @@ int main(int, char *[])
         daily_logger->info(123.44);
 
         // Customize msg format for all messages
-        spd::set_pattern("*** [%H:%M:%S %z] [thread %t] %v ***");
-        rotating_logger->info("This is another message with custom format");
+        spd::set_pattern("[%^+++%$] [%H:%M:%S %z] [thread %t] %v");
+        console->info("This an info message with custom format");
+        console->error("This an error message with custom format");
 
         // Runtime log levels
         spd::set_level(spd::level::info); // Set global log level to info
@@ -102,11 +105,13 @@ int main(int, char *[])
 
 void async_example()
 {
-    size_t q_size = 4096; // queue size must be power of 2
+    size_t q_size = 4096;
     spdlog::set_async_mode(q_size);
     auto async_file = spd::daily_logger_st("async_file_logger", "logs/async_log.txt");
     for (int i = 0; i < 100; ++i)
+    {
         async_file->info("Async message #{}", i);
+    }
 }
 
 // syslog example (linux/osx/freebsd)
@@ -133,7 +138,8 @@ void android_example()
 struct my_type
 {
     int i;
-    template <typename OStream> friend OStream &operator<<(OStream &os, const my_type &c)
+    template<typename OStream>
+    friend OStream &operator<<(OStream &os, const my_type &c)
     {
         return os << "[my_type i=" << c.i << "]";
     }

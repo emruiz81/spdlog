@@ -20,7 +20,8 @@
 #include <utility>
 #include <vector>
 
-namespace spdlog { namespace details {
+namespace spdlog {
+namespace details {
 class flag_formatter
 {
 public:
@@ -420,6 +421,22 @@ private:
     std::string _str;
 };
 
+// mark the color range. expect it to be in the form of "%^colored text%$"
+class color_start_formatter SPDLOG_FINAL : public flag_formatter
+{
+    void format(details::log_msg &msg, const std::tm &) override
+    {
+        msg.color_range_start = msg.formatted.size();
+    }
+};
+class color_stop_formatter SPDLOG_FINAL : public flag_formatter
+{
+    void format(details::log_msg &msg, const std::tm &) override
+    {
+        msg.color_range_end = msg.formatted.size();
+    }
+};
+
 // Full info formatter
 // pattern: [%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v
 class full_formatter SPDLOG_FINAL : public flag_formatter
@@ -461,12 +478,17 @@ class full_formatter SPDLOG_FINAL : public flag_formatter
         msg.formatted << '[' << *msg.logger_name << "] ";
 #endif
 
-        msg.formatted << '[' << level::to_str(msg.level) << "] ";
-        msg.formatted << fmt::StringRef(msg.raw.data(), msg.raw.size());
+        msg.formatted << '[';
+        // wrap the level name with color
+        msg.color_range_start = msg.formatted.size();
+        msg.formatted << level::to_str(msg.level);
+        msg.color_range_end = msg.formatted.size();
+        msg.formatted << "] " << fmt::StringRef(msg.raw.data(), msg.raw.size());
     }
 };
 
-}} // namespace spdlog::details
+} // namespace details
+} // namespace spdlog
 ///////////////////////////////////////////////////////////////////////////////
 // pattern_formatter inline impl
 ///////////////////////////////////////////////////////////////////////////////
@@ -486,16 +508,25 @@ inline void spdlog::pattern_formatter::compile_pattern(const std::string &patter
         if (*it == '%')
         {
             if (user_chars) // append user chars found so far
+            {
                 _formatters.push_back(std::move(user_chars));
+            }
+            // if(
             if (++it != end)
+            {
                 handle_flag(*it);
+            }
             else
+            {
                 break;
+            }
         }
         else // chars not following the % sign should be displayed as is
         {
             if (!user_chars)
+            {
                 user_chars = std::unique_ptr<details::aggregate_formatter>(new details::aggregate_formatter());
+            }
             user_chars->add_ch(*it);
         }
     }
@@ -635,6 +666,14 @@ inline void spdlog::pattern_formatter::handle_flag(char flag)
         _formatters.emplace_back(new details::i_formatter());
         break;
 
+    case ('^'):
+        _formatters.emplace_back(new details::color_start_formatter());
+        break;
+
+    case ('$'):
+        _formatters.emplace_back(new details::color_stop_formatter());
+        break;
+
     default: // Unknown flag appears as is
         _formatters.emplace_back(new details::ch_formatter('%'));
         _formatters.emplace_back(new details::ch_formatter(flag));
@@ -664,5 +703,5 @@ inline void spdlog::pattern_formatter::format(details::log_msg &msg)
         f->format(msg, tm_time);
     }
     // write eol
-    msg.formatted.write(_eol.data(), _eol.size());
+    msg.formatted << _eol;
 }

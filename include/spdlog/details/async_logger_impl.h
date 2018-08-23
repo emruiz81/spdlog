@@ -16,13 +16,13 @@
 #include <memory>
 #include <string>
 
-template <class It>
+template<class It>
 inline spdlog::async_logger::async_logger(const std::string &logger_name, const It &begin, const It &end, size_t queue_size,
     const async_overflow_policy overflow_policy, const std::function<void()> &worker_warmup_cb,
     const std::chrono::milliseconds &flush_interval_ms, const std::function<void()> &worker_teardown_cb)
     : logger(logger_name, begin, end)
-    , _async_log_helper(new details::async_log_helper(
-          _formatter, _sinks, queue_size, _err_handler, overflow_policy, worker_warmup_cb, flush_interval_ms, worker_teardown_cb))
+    , _async_log_helper(new details::async_log_helper(logger_name, _formatter, _sinks, queue_size, _err_handler, overflow_policy,
+          worker_warmup_cb, flush_interval_ms, worker_teardown_cb))
 {
 }
 
@@ -44,7 +44,7 @@ inline spdlog::async_logger::async_logger(const std::string &logger_name, sink_p
 
 inline void spdlog::async_logger::flush()
 {
-    _async_log_helper->flush(true);
+    _async_log_helper->flush();
 }
 
 // Error handler
@@ -79,7 +79,9 @@ inline void spdlog::async_logger::_sink_it(details::log_msg &msg)
 #endif
         _async_log_helper->log(msg);
         if (_should_flush_on(msg))
-            _async_log_helper->flush(false); // do async flush
+        {
+            _async_log_helper->flush(); // do async flush
+        }
     }
     catch (const std::exception &ex)
     {

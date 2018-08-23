@@ -11,7 +11,8 @@
 #include <string>
 #include <utility>
 
-namespace spdlog { namespace details {
+namespace spdlog {
+namespace details {
 struct log_msg
 {
     log_msg() = default;
@@ -39,5 +40,9 @@ struct log_msg
     fmt::MemoryWriter raw;
     fmt::MemoryWriter formatted;
     size_t msg_id{0};
+    // wrap this range with color codes
+    size_t color_range_start{0};
+    size_t color_range_end{0};
 };
-}} // namespace spdlog::details
+} // namespace details
+} // namespace spdlog

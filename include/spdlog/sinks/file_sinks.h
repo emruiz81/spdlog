@@ -18,11 +18,13 @@
 #include <mutex>
 #include <string>
 
-namespace spdlog { namespace sinks {
+namespace spdlog {
+namespace sinks {
 /*
  * Trivial file sink with single file as target
  */
-template <class Mutex> class simple_file_sink SPDLOG_FINAL : public base_sink<Mutex>
+template<class Mutex>
+class simple_file_sink SPDLOG_FINAL : public base_sink<Mutex>
 {
 public:
     explicit simple_file_sink(const filename_t &filename, bool truncate = false, bool delay = false):_filename(filename),_truncate(truncate),_force_flush(false)
@@ -54,7 +56,9 @@ protected:
         
         _file_helper.write(msg);
         if (_force_flush)
+        {
             _file_helper.flush();
+        }
     }
 
     void _flush() override
@@ -85,7 +89,8 @@ using simple_file_sink_st = simple_file_sink<details::null_mutex>;
 /*
  * Rotating file sink based on size
  */
-template <class Mutex> class rotating_file_sink SPDLOG_FINAL : public base_sink<Mutex>
+template<class Mutex>
+class rotating_file_sink SPDLOG_FINAL : public base_sink<Mutex>
 {
 public:
     rotating_file_sink(const filename_t &base_filename,
@@ -237,7 +242,8 @@ struct dateonly_daily_file_name_calculator
 /*
  * Rotating file sink based on date. rotates at midnight
  */
-template <class Mutex, class FileNameCalc = default_daily_file_name_calculator> class daily_file_sink SPDLOG_FINAL : public base_sink<Mutex>
+template<class Mutex, class FileNameCalc = default_daily_file_name_calculator>
+class daily_file_sink SPDLOG_FINAL : public base_sink<Mutex>
 {
 public:
     // create daily file sink which rotates on given time
@@ -247,7 +253,9 @@ public:
         , _rotation_m(rotation_minute)
     {
         if (rotation_hour < 0 || rotation_hour > 23 || rotation_minute < 0 || rotation_minute > 59)
+        {
             throw spdlog_ex("daily_file_sink: Invalid rotation time in ctor");
+        }
         _rotation_tp = _next_rotation_tp();
         _file_helper.open(FileNameCalc::calc_filename(_base_filename));
     }
@@ -295,4 +303,5 @@ private:
 using daily_file_sink_mt = daily_file_sink<std::mutex>;
 using daily_file_sink_st = daily_file_sink<details::null_mutex>;
 
-}} // namespace spdlog::sinks
+} // namespace sinks
+} // namespace spdlog
