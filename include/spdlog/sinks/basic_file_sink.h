@@ -21,14 +21,28 @@ template<typename Mutex>
 class basic_file_sink SPDLOG_FINAL : public base_sink<Mutex>
 {
 public:
-    explicit basic_file_sink(const filename_t &filename, bool truncate = false)
+    explicit basic_file_sink(const filename_t &filename, bool truncate = false, bool delay = false) : filename_(filename), truncate_(truncate)
     {
-        file_helper_.open(filename, truncate);
+        if(!delay)
+        {
+            file_helper_.open(filename, truncate);
+            file_open_=true;
+        }
+        else
+        {
+            file_open_=false;
+        }
     }
 
 protected:
     void sink_it_(const details::log_msg &msg) override
     {
+        if(!file_open_)
+        {
+            file_helper_.open(filename_, truncate_);
+            file_open_=true;
+        }
+        
         fmt::memory_buffer formatted;
         sink::formatter_->format(msg, formatted);
         file_helper_.write(formatted);
@@ -38,9 +52,21 @@ protected:
     {
         file_helper_.flush();
     }
+    
+    void close_() override
+    {
+        if(file_open_)
+        {
+            file_helper_.close();
+            file_open_=false;
+        }
+    }
 
 private:
     details::file_helper file_helper_;
+    filename_t filename_;
+    bool truncate_;
+    bool file_open_;
 };
 
 using basic_file_sink_mt = basic_file_sink<std::mutex>;

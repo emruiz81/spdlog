@@ -41,7 +41,13 @@ public:
         std::lock_guard<Mutex> lock(mutex_);
         flush_();
     }
-
+    
+    void close() SPDLOG_FINAL override
+    {
+        std::lock_guard<Mutex> lock(mutex_);
+        close_();
+    }
+    
     void set_pattern(const std::string &pattern) SPDLOG_FINAL override
     {
         std::lock_guard<Mutex> lock(mutex_);
@@ -57,6 +63,7 @@ public:
 protected:
     virtual void sink_it_(const details::log_msg &msg) = 0;
     virtual void flush_() = 0;
+    virtual void close_() {}; // Optional implementation
     Mutex mutex_;
 };
 } // namespace sinks
