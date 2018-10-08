@@ -75,7 +75,7 @@ inline void pad3(int n, fmt::basic_memory_buffer<char, Buffer_Size> &dest)
 
     if (n > 99) // 100-999
     {
-        append_int(n / 100, dest);
+        dest.push_back(static_cast<char>('0' + n / 100));
         pad2(n % 100, dest);
         return;
     }
@@ -115,7 +115,8 @@ inline void pad6(size_t n, fmt::basic_memory_buffer<char, Buffer_Size> &dest)
 template<typename ToDuration>
 inline ToDuration time_fraction(const log_clock::time_point &tp)
 {
-    using namespace std::chrono;
+    using std::chrono::duration_cast;
+    using std::chrono::seconds;
     auto duration = tp.time_since_epoch();
     auto secs = duration_cast<seconds>(duration);
     return duration_cast<ToDuration>(duration) - duration_cast<ToDuration>(secs);

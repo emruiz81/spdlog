@@ -14,6 +14,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 #if defined(SPDLOG_WCHAR_FILENAMES) || defined(SPDLOG_WCHAR_TO_UTF8_SUPPORT)
@@ -30,13 +31,6 @@
 #else
 #define SPDLOG_NOEXCEPT noexcept
 #define SPDLOG_CONSTEXPR constexpr
-#endif
-
-// final keyword support. On by default. See tweakme.h
-#if defined(SPDLOG_NO_FINAL)
-#define SPDLOG_FINAL
-#else
-#define SPDLOG_FINAL final
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -135,8 +129,8 @@ enum class pattern_time_type
 class spdlog_ex : public std::exception
 {
 public:
-    explicit spdlog_ex(const std::string &msg)
-        : msg_(msg)
+    explicit spdlog_ex(std::string msg)
+        : msg_(std::move(msg))
     {
     }
 
@@ -175,16 +169,18 @@ using filename_t = std::string;
         err_handler_("Unknown exeption in logger");                                                                                        \
     }
 
-//
-// make_unique support
-//
+namespace details {
+// make_unique support for pre c++14
+
 #if __cplusplus >= 201402L // C++14 and beyond
 using std::make_unique;
 #else
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args &&... args)
 {
+    static_assert(!std::is_array<T>::value, "arrays not supported");
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 #endif
+} // namespace details
 } // namespace spdlog

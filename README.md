@@ -27,12 +27,11 @@ Very fast, header only, C++ logging library. [![Build Status](https://travis-ci.
  * Android
 
 ## Features
-* Very fast - performance is the primary goal (see [benchmarks](#benchmarks) below).
+* Very fast (see [benchmarks](#benchmarks) below).
 * Headers only, just copy and use.
-* Feature rich using the excellent [fmt](https://github.com/fmtlib/fmt) library.
+* Feature rich formatting, using the excellent [fmt](https://github.com/fmtlib/fmt) library.
 * Fast asynchronous mode (optional)
 * [Custom](https://github.com/gabime/spdlog/wiki/3.-Custom-formatting) formatting.
-* Conditional Logging
 * Multi/Single threaded loggers.
 * Various log targets:
     * Rotating log files.
@@ -42,7 +41,7 @@ Very fast, header only, C++ logging library. [![Build Status](https://travis-ci.
     * Windows debugger (```OutputDebugString(..)```)
     * Easily extendable with custom log targets  (just implement a single function in the [sink](include/spdlog/sinks/sink.h) interface).
 * Severity based filtering - threshold levels can be modified in runtime as well as in compile time.
-
+* Binary data logging.
 
 
 ## Benchmarks
@@ -54,28 +53,26 @@ Below are some [benchmarks](https://github.com/gabime/spdlog/blob/v1.x/bench/ben
 *******************************************************************************
 Single thread, 1,000,000 iterations
 *******************************************************************************
-basic_st...		    Elapsed: 0.226664	4,411,806/sec
-rotating_st...	 	    Elapsed: 0.214339	4,665,499/sec
-daily_st...		    Elapsed: 0.211292	4,732,797/sec
-null_st...		    Elapsed: 0.102815	9,726,227/sec
-
+basic_st...             Elapsed: 0.181652       5,505,042/sec
+rotating_st...          Elapsed: 0.181781       5,501,117/sec
+daily_st...             Elapsed: 0.187595       5,330,630/sec
+null_st...              Elapsed: 0.0504704      19,813,602/sec
 *******************************************************************************
 10 threads sharing same logger, 1,000,000 iterations
 *******************************************************************************
-basic_mt...		    Elapsed: 0.882268	1,133,441/sec
-rotating_mt...              Elapsed: 0.875515	1,142,184/sec
-daily_mt...		    Elapsed: 0.879573	1,136,915/sec
-null_mt...		    Elapsed: 0.220114	4,543,105/sec
+basic_mt...             Elapsed: 0.616035       1,623,284/sec
+rotating_mt...          Elapsed: 0.620344       1,612,008/sec
+daily_mt...             Elapsed: 0.648353       1,542,369/sec
+null_mt...              Elapsed: 0.151972       6,580,166/sec
 ``` 
 #### Asynchronous mode
 ```
 *******************************************************************************
 10 threads sharing same logger, 1,000,000 iterations 
 *******************************************************************************
-async...		Elapsed: 0.429088	2,330,524/sec
-async...		Elapsed: 0.411501	2,430,126/sec
-async...		Elapsed: 0.428979	2,331,116/sec
-
+async...                Elapsed: 0.350066       2,856,606/sec
+async...                Elapsed: 0.314865       3,175,960/sec
+async...                Elapsed: 0.349851       2,858,358/sec
 ```
 
 ## Usage samples
@@ -131,7 +128,6 @@ void basic_logfile_example()
     catch (const spdlog::spdlog_ex &ex)
     {
         std::cout << "Log init failed: " << ex.what() << std::endl;
-        return 1;
     }
 }
 ```
@@ -180,6 +176,33 @@ spdlog::flush_every(std::chrono::seconds(3));
 
 ```
 
+---
+#### Binary logging
+```c++
+// log binary data as hex.
+// many types of std::container<char> types can be used.
+// ranges are supported too.
+// format flags:
+// {:X} - print in uppercase.
+// {:s} - don't separate each byte with space.
+// {:p} - don't print the position on each line start.
+// {:n} - don't split the output to lines.
+
+#include "spdlog/fmt/bin_to_hex.h"
+
+void binary_example()
+{
+    auto console = spdlog::get("console");
+    std::array<char, 80> buf;
+    console->info("Binary example: {}", spdlog::to_hex(buf));
+    console->info("Another binary example:{:n}", spdlog::to_hex(std::begin(buf), std::begin(buf) + 10));
+    // more examples:
+    // logger->info("uppercase: {:X}", spdlog::to_hex(buf));
+    // logger->info("uppercase, no delimiters: {:Xs}", spdlog::to_hex(buf));
+    // logger->info("uppercase, no delimiters, no position info: {:Xsp}", spdlog::to_hex(buf));
+}
+
+```
 
 ---
 #### Logger with multi sinks - each with different format and log level
