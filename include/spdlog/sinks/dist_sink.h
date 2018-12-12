@@ -5,6 +5,10 @@
 
 #pragma once
 
+#ifndef SPDLOG_H
+#error "spdlog.h must be included before this file."
+#endif
+
 #include "base_sink.h"
 #include "spdlog/details/log_msg.h"
 #include "spdlog/details/null_mutex.h"
@@ -69,7 +73,7 @@ protected:
 
     void set_pattern_(const std::string &pattern) override
     {
-        set_formatter_(spdlog::make_unique<spdlog::pattern_formatter>(pattern));
+        set_formatter_(details::make_unique<spdlog::pattern_formatter>(pattern));
     }
 
     void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override

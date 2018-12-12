@@ -32,13 +32,13 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////
-// name & level pattern appenders
+// name & level pattern appender
 ///////////////////////////////////////////////////////////////////////
 class name_formatter : public flag_formatter
 {
     void format(const details::log_msg &msg, const std::tm &, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_str(*msg.logger_name, dest);
+        fmt_helper::append_string_view(string_view_t(*msg.logger_name), dest);
     }
 };
 
@@ -47,7 +47,7 @@ class level_formatter : public flag_formatter
 {
     void format(const details::log_msg &msg, const std::tm &, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(level::to_c_str(msg.level), dest);
+        fmt_helper::append_string_view(level::to_c_str(msg.level), dest);
     }
 };
 
@@ -56,7 +56,7 @@ class short_level_formatter : public flag_formatter
 {
     void format(const details::log_msg &msg, const std::tm &, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(level::to_short_c_str(msg.level), dest);
+        fmt_helper::append_string_view(level::to_short_c_str(msg.level), dest);
     }
 };
 
@@ -80,7 +80,7 @@ class a_formatter : public flag_formatter
 {
     void format(const details::log_msg &, const std::tm &tm_time, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(days[tm_time.tm_wday], dest);
+        fmt_helper::append_string_view(days[tm_time.tm_wday], dest);
     }
 };
 
@@ -90,7 +90,7 @@ class A_formatter : public flag_formatter
 {
     void format(const details::log_msg &, const std::tm &tm_time, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(full_days[tm_time.tm_wday], dest);
+        fmt_helper::append_string_view(full_days[tm_time.tm_wday], dest);
     }
 };
 
@@ -100,7 +100,7 @@ class b_formatter : public flag_formatter
 {
     void format(const details::log_msg &, const std::tm &tm_time, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(months[tm_time.tm_mon], dest);
+        fmt_helper::append_string_view(months[tm_time.tm_mon], dest);
     }
 };
 
@@ -111,7 +111,7 @@ class B_formatter : public flag_formatter
 {
     void format(const details::log_msg &, const std::tm &tm_time, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(full_months[tm_time.tm_mon], dest);
+        fmt_helper::append_string_view(full_months[tm_time.tm_mon], dest);
     }
 };
 
@@ -123,9 +123,9 @@ class c_formatter final : public flag_formatter
         // fmt::format_to(dest, "{} {} {} ", days[tm_time.tm_wday],
         // months[tm_time.tm_mon], tm_time.tm_mday);
         // date
-        fmt_helper::append_str(days[tm_time.tm_wday], dest);
+        fmt_helper::append_string_view(days[tm_time.tm_wday], dest);
         dest.push_back(' ');
-        fmt_helper::append_str(months[tm_time.tm_mon], dest);
+        fmt_helper::append_string_view(months[tm_time.tm_mon], dest);
         dest.push_back(' ');
         fmt_helper::append_int(tm_time.tm_mday, dest);
         dest.push_back(' ');
@@ -272,7 +272,7 @@ class p_formatter final : public flag_formatter
 {
     void format(const details::log_msg &, const std::tm &tm_time, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_c_str(ampm(tm_time), dest);
+        fmt_helper::append_string_view(ampm(tm_time), dest);
     }
 };
 
@@ -287,7 +287,7 @@ class r_formatter final : public flag_formatter
         dest.push_back(':');
         fmt_helper::pad2(tm_time.tm_sec, dest);
         dest.push_back(' ');
-        fmt_helper::append_c_str(ampm(tm_time), dest);
+        fmt_helper::append_string_view(ampm(tm_time), dest);
     }
 };
 
@@ -401,7 +401,7 @@ class v_formatter final : public flag_formatter
 {
     void format(const details::log_msg &msg, const std::tm &, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_buf(msg.raw, dest);
+        fmt_helper::append_string_view(msg.payload, dest);
     }
 };
 
@@ -433,7 +433,7 @@ public:
     }
     void format(const details::log_msg &, const std::tm &, fmt::memory_buffer &dest) override
     {
-        fmt_helper::append_str(str_, dest);
+        fmt_helper::append_string_view(str_, dest);
     }
 
 private:
@@ -508,20 +508,26 @@ class full_formatter final : public flag_formatter
 #endif
 
 #ifndef SPDLOG_NO_NAME
-        dest.push_back('[');
-        fmt_helper::append_str(*msg.logger_name, dest);
-        dest.push_back(']');
-        dest.push_back(' ');
+        if (!msg.logger_name->empty())
+        {
+            dest.push_back('[');
+            // fmt_helper::append_str(*msg.logger_name, dest);
+            fmt_helper::append_string_view(*msg.logger_name, dest);
+            dest.push_back(']');
+            dest.push_back(' ');
+        }
 #endif
 
         dest.push_back('[');
         // wrap the level name with color
         msg.color_range_start = dest.size();
-        fmt_helper::append_c_str(level::to_c_str(msg.level), dest);
+        // fmt_helper::append_string_view(level::to_c_str(msg.level), dest);
+        fmt_helper::append_string_view(level::to_c_str(msg.level), dest);
         msg.color_range_end = dest.size();
         dest.push_back(']');
         dest.push_back(' ');
-        fmt_helper::append_buf(msg.raw, dest);
+        // fmt_helper::append_string_view(msg.msg(), dest);
+        fmt_helper::append_string_view(msg.payload, dest);
     }
 
 private:
@@ -568,7 +574,8 @@ public:
             f->format(msg, cached_tm_, dest);
         }
         // write eol
-        details::fmt_helper::append_str(eol_, dest);
+        // details::fmt_helper::append_string_view(eol_.c_str(), dest);
+        details::fmt_helper::append_string_view(eol_.c_str(), dest);
     }
 
 private:

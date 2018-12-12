@@ -1,5 +1,6 @@
 #pragma once
 
+#include "spdlog/details/fmt_helper.h"
 #include "spdlog/details/log_msg.h"
 #include "spdlog/details/mpmc_blocking_q.h"
 #include "spdlog/details/os.h"
@@ -77,7 +78,7 @@ struct async_msg
         , msg_id(m.msg_id)
         , worker_ptr(std::move(worker))
     {
-        fmt_helper::append_buf(m.raw, raw);
+        fmt_helper::append_string_view(m.payload, raw);
     }
 
     async_msg(async_logger_ptr &&worker, async_msg_type the_type)
@@ -91,16 +92,15 @@ struct async_msg
     }
 
     // copy into log_msg
-    void to_log_msg(log_msg &msg)
+    log_msg to_log_msg()
     {
-        msg.logger_name = &worker_ptr->name();
-        msg.level = level;
+        log_msg msg(&worker_ptr->name(), level, string_view_t(raw.data(), raw.size()));
         msg.time = time;
         msg.thread_id = thread_id;
-        fmt_helper::append_buf(raw, msg.raw);
         msg.msg_id = msg_id;
         msg.color_range_start = 0;
         msg.color_range_end = 0;
+        return msg;
     }
 };
 
@@ -203,8 +203,7 @@ private:
         {
         case async_msg_type::log:
         {
-            log_msg msg;
-            incoming_async_msg.to_log_msg(msg);
+            auto msg = incoming_async_msg.to_log_msg();
             incoming_async_msg.worker_ptr->backend_log_(msg);
             return true;
         }

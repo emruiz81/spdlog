@@ -46,7 +46,6 @@ public:
     template<typename... Args>
     void log(level::level_enum lvl, const char *fmt, const Args &... args);
 
-    template<typename... Args>
     void log(level::level_enum lvl, const char *msg);
 
     template<typename... Args>
@@ -94,7 +93,12 @@ public:
 #endif // _WIN32
 #endif // SPDLOG_WCHAR_TO_UTF8_SUPPORT
 
-    template<typename T>
+    // T can be statically converted to string_view
+    template<class T, typename std::enable_if<std::is_convertible<T, spdlog::string_view_t>::value, T>::type * = nullptr>
+    void log(level::level_enum lvl, const T &);
+
+    // T cannot be statically converted to string_view
+    template<class T, typename std::enable_if<!std::is_convertible<T, spdlog::string_view_t>::value, T>::type * = nullptr>
     void log(level::level_enum lvl, const T &);
 
     template<typename T>
@@ -136,7 +140,7 @@ public:
 
     // error handler
     void set_error_handler(log_err_handler err_handler);
-    log_err_handler error_handler();
+    log_err_handler error_handler() const;
 
     // create new logger with same sinks and configuration.
     virtual std::shared_ptr<logger> clone(std::string logger_name);
