@@ -6,7 +6,7 @@
 #pragma once
 
 #ifndef SPDLOG_H
-#error "spdlog.h must be included before this file."
+#include "spdlog/spdlog.h"
 #endif
 
 #include "spdlog/details/file_helper.h"
@@ -31,12 +31,12 @@ template<typename Mutex>
 class rotating_file_sink final : public base_sink<Mutex>
 {
 public:
-    rotating_file_sink(filename_t base_filename, std::size_t max_size, std::size_t max_files, bool delay = false)
+    rotating_file_sink(filename_t base_filename, std::size_t max_size, std::size_t max_files, bool rotate_on_open=false, bool delay_open = false)
         : base_filename_(std::move(base_filename))
         , max_size_(max_size)
         , max_files_(max_files)
     {
-        if(!delay)
+        if(!delay_open)
         {
             file_helper_.open(calc_filename(base_filename_, 0));
             current_size_ = file_helper_.size(); // expensive. called only once
@@ -45,6 +45,11 @@ public:
         else
         {
             file_open_=false;
+        }
+
+        if (rotate_on_open && current_size_ > 0)
+        {
+            rotate_();
         }
     }
 
@@ -56,7 +61,7 @@ public:
         if (index != 0u)
         {
             filename_t basename, ext;
-            std::tie(basename, ext) = details::file_helper::split_by_extenstion(filename);
+            std::tie(basename, ext) = details::file_helper::split_by_extension(filename);
             fmt::format_to(w, SPDLOG_FILENAME_T("{}.{}{}"), basename, index, ext);
         }
         else
@@ -64,6 +69,11 @@ public:
             fmt::format_to(w, SPDLOG_FILENAME_T("{}"), filename);
         }
         return fmt::to_string(w);
+    }
+
+    const filename_t &filename() const
+    {
+        return file_helper_.filename();
     }
 
 protected:
@@ -130,6 +140,7 @@ private:
                 if (!rename_file(src, target))
                 {
                     file_helper_.reopen(true); // truncate the log file anyway to prevent it to grow beyond its limit!
+                    current_size_ = 0;
                     throw spdlog_ex(
                         "rotating_file_sink: failed renaming " + filename_to_str(src) + " to " + filename_to_str(target), errno);
                 }
@@ -166,15 +177,15 @@ using rotating_file_sink_st = rotating_file_sink<details::null_mutex>;
 
 template<typename Factory = default_factory>
 inline std::shared_ptr<logger> rotating_logger_mt(
-    const std::string &logger_name, const filename_t &filename, size_t max_file_size, size_t max_files)
+    const std::string &logger_name, const filename_t &filename, size_t max_file_size, size_t max_files, bool rotate_on_open=false, bool delay_open=false)
 {
-    return Factory::template create<sinks::rotating_file_sink_mt>(logger_name, filename, max_file_size, max_files);
+    return Factory::template create<sinks::rotating_file_sink_mt>(logger_name, filename, max_file_size, max_files, rotate_on_open, delay_open);
 }
 
 template<typename Factory = default_factory>
 inline std::shared_ptr<logger> rotating_logger_st(
-    const std::string &logger_name, const filename_t &filename, size_t max_file_size, size_t max_files)
+    const std::string &logger_name, const filename_t &filename, size_t max_file_size, size_t max_files, bool rotate_on_open = false, bool delay_open=false)
 {
-    return Factory::template create<sinks::rotating_file_sink_st>(logger_name, filename, max_file_size, max_files);
+    return Factory::template create<sinks::rotating_file_sink_st>(logger_name, filename, max_file_size, max_files, rotate_on_open, delay_open);
 }
 } // namespace spdlog

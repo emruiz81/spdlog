@@ -33,6 +33,7 @@ struct async_msg
     fmt::basic_memory_buffer<char, 176> raw;
 
     size_t msg_id;
+    source_loc source;
     async_logger_ptr worker_ptr;
 
     async_msg() = default;
@@ -49,6 +50,7 @@ struct async_msg
                                                    thread_id(other.thread_id),
                                                    raw(move(other.raw)),
                                                    msg_id(other.msg_id),
+                                                   source(other.source),
                                                    worker_ptr(std::move(other.worker_ptr))
     {
     }
@@ -61,6 +63,7 @@ struct async_msg
         thread_id = other.thread_id;
         raw = std::move(other.raw);
         msg_id = other.msg_id;
+        source = other.source;
         worker_ptr = std::move(other.worker_ptr);
         return *this;
     }
@@ -70,24 +73,31 @@ struct async_msg
 #endif
 
     // construct from log_msg with given type
-    async_msg(async_logger_ptr &&worker, async_msg_type the_type, details::log_msg &&m)
+    async_msg(async_logger_ptr &&worker, async_msg_type the_type, details::log_msg &m)
         : msg_type(the_type)
         , level(m.level)
         , time(m.time)
         , thread_id(m.thread_id)
         , msg_id(m.msg_id)
+        , source(m.source)
         , worker_ptr(std::move(worker))
     {
         fmt_helper::append_string_view(m.payload, raw);
     }
 
     async_msg(async_logger_ptr &&worker, async_msg_type the_type)
-        : async_msg(std::move(worker), the_type, details::log_msg())
+        : msg_type(the_type)
+        , level(level::off)
+        , time()
+        , thread_id(0)
+        , msg_id(0)
+        , source()
+        , worker_ptr(std::move(worker))
     {
     }
 
     explicit async_msg(async_msg_type the_type)
-        : async_msg(nullptr, the_type, details::log_msg())
+        : async_msg(nullptr, the_type)
     {
     }
 
@@ -98,6 +108,7 @@ struct async_msg
         msg.time = time;
         msg.thread_id = thread_id;
         msg.msg_id = msg_id;
+        msg.source = source;
         msg.color_range_start = 0;
         msg.color_range_end = 0;
         return msg;
@@ -149,9 +160,9 @@ public:
     thread_pool(const thread_pool &) = delete;
     thread_pool &operator=(thread_pool &&) = delete;
 
-    void post_log(async_logger_ptr &&worker_ptr, details::log_msg &&msg, async_overflow_policy overflow_policy)
+    void post_log(async_logger_ptr &&worker_ptr, details::log_msg &msg, async_overflow_policy overflow_policy)
     {
-        async_msg async_m(std::move(worker_ptr), async_msg_type::log, std::move(msg));
+        async_msg async_m(std::move(worker_ptr), async_msg_type::log, msg);
         post_async_msg_(std::move(async_m), overflow_policy);
     }
 
